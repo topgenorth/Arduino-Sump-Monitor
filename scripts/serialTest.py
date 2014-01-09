@@ -5,7 +5,8 @@ import time
 import serial
 
 print("Opening serial port")
-conn = serial.Serial('/dev/tty.usbmodem641', 9600)
+conn = serial.Serial('/dev/ttyACM0', 115200)
+#conn = serial.Serial('/dev/tty.usbmodem641', 9600)
 
 print("sleeping")
 time.sleep(2)
