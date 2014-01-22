@@ -3,7 +3,7 @@ import time
 loops = 3
 count = 0
 while (count < 3):
-    execfile("depthPoll.py")
+    execfile("/home/johnbanta/Desktop/sumpMonitor/scripts/depthPoll.py")
 #    print "Start : %s" % time.ctime()
     if count == loops-1:
         break

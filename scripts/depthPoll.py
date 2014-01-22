@@ -8,7 +8,8 @@ import datetime, time, serial, sys, boto
 ## Script Configurations ##
 killswitch = 0 			            # Master kill switch: set to 1 to disable the script from running
 sumpdepth = 60 			            # Total height (in cm) of the sump pit
-alertthreshold = 15 		        # Water level (in cm) must reach this height for the SMS alert feature to activate
+alertthreshold = 30 		        # Water level (in cm) must reach this height for the SMS alert feature to activate
+notificationkillswitch = 0          # Kill switch to disable SMS notifications: set to 1 to disable
 arduino = "/dev/ttyACM0" 	        # Serial port for Arduino on Raspberry Pi
 #arduino = "/dev/tty.usbmodem641"   # Serial port for Arduino on Mac
 arduinospeed = 115200               # Baud rate with Arduino 
@@ -59,22 +60,23 @@ new_entry.save()
     # If 3, mention in message that it will be the last one for x mins.
     # if 4, do not send
     # put url to chart in msg
-#if depth > alertthreshold:
-#    sns = boto.connect_sns()
-#    alerttime = time.strftime('%H:%M:%S',  time.gmtime(polltime))
-#    arn = "arn:aws:sns:us-east-1:361127226605:SumpPumpAlerts"
-#    msg = "Water level reached " + str(depth) + "cm at " + alerttime
-#    subj = "Water level: " + str(depth) + "cm at " + alerttime
-#    sns.publish(arn, msg, subj)
-#    # Store SMS message to DynamoDB for logging purposes:
-#    message = Table('sns_alerts')
-#    new_entry = Item(message, data={
-#        'type': 'sump',
-#        'date': polltime,
-#        'subject': subj,
-#        'message': msg,
-#    })
-#    new_entry.save()
+if notificationkillswitch == 0:
+    if depth > alertthreshold:
+        sns = boto.connect_sns()
+        alerttime = time.strftime('%H:%M:%S',  time.gmtime(polltime))
+        arn = "arn:aws:sns:us-east-1:361127226605:SumpPumpAlerts"
+        msg = "Water level reached " + str(depth) + "cm at " + alerttime
+        subj = "Water level: " + str(depth) + "cm at " + alerttime
+        sns.publish(arn, msg, subj)
+        # Store SMS message to DynamoDB for logging purposes:
+        message = Table('sns_alerts')
+        new_entry = Item(message, data={
+            'type': 'sump',
+            'date': polltime,
+            'subject': subj,
+            'message': msg,
+        })
+        new_entry.save()
 
 print("collected at %s" % (polltime))
 

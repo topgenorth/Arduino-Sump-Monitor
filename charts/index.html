@@ -54,16 +54,22 @@
                     <p>Monitor water depth remotely with an Arduino and DynamoDB.</p>
                 </div>
             </div>
-			<div class="row">
-				<div class="col-sm-6">
-					Chart 1: trend line of last 200 observations
+			<!-- <div class="row">
+				<div class="col-sm-8">
+					Chart 1: trend line of last 3 hours
 				</div>
-				<div class="col-sm-6">
+				<div class="col-sm-4">
 					Chart 2: TBD
 				</div>	
-			</div>		
+			</div>		 -->
             <div class="row">
-                <div class="col-sm-3">
+                <div class="col-sm-8" id="content">
+                    <h3><span id="status"></span></h3>
+                    <div id="graph">
+                    </div>
+                </div>
+
+                <div class="col-sm-4">
 <!--                    <div class="form-group">
                         <label for="measurementSelect">Measurement:</label>
                         <select class="form-control" id="measurementSelect">
@@ -106,12 +112,6 @@
 -->
                 </div>
 
-                <div class="col-sm-9" id="content">
-                    <h3><span id="status"></span></h3>
-                    <div id="graph">
-                    </div>
-                </div>
-
             </div>
             <footer class="row col-sm-12">
                 <p>Sump Pit Water Monitor Created by <a href="http://bantacafe.com/">John Banta</a>.
@@ -124,6 +124,7 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/augment.js/1.0.0/augment.min.js"></script>
     <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.0.0-rc4.min.js"></script>
+    <script src="http://momentjs.com/downloads/moment.min.js"></script>
     <!-- AWS SDK info from http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/index.html -->
     <script>	
         $(document).ready(function() {
@@ -207,10 +208,12 @@
                 queryPage();
             };
 
-            // Query all the temperatures that were measured after lastseen 
-            // for the provided measurement id.
+
+            // Query all the water level measurements that were measured after lastseen 
             var queryLevels = function(measurementId, lastseen, callback) {
                 var data = [];
+				var offset = 60*60*3; // how many hours worth of seconds of data should we fetch
+				var firstdate = Math.floor((new Date).getTime()/1000)-offset; //get epoch time of current now minus # hours specified above
                 // Grab a page of results from the provided start key.
                 var queryPage = function(startkey) {
                     var params = {  'TableName': 'sump',
@@ -220,6 +223,10 @@
                                         'Id': { 
                                             'AttributeValueList': [ { 'S': 'sump' } ], //finds all records where Id = 'sump'
                                             'ComparisonOperator': 'EQ'
+                                        },
+                                        'Date': { 
+                                            'AttributeValueList': [ { 'N': firstdate.toString() } ],
+                                            'ComparisonOperator': 'GT'
                                         }
                                     } 
                                 };
@@ -251,16 +258,6 @@
                 };
                 queryPage();
             };
-
-            // Populate list of ID values with data queried from DB.
-            // queryUniqueMeasurements(function(measurements) {
-            //     var measurementSelect = $('#measurementSelect');
-            //     measurementSelect.empty();
-            //     measurementSelect.append("<option value='' disabled selected style='display:none;'>Choose...</option>");
-            //     for (id in measurements) {
-            //         measurementSelect.append('<option>' + id + '</option>');
-            //     }
-            // });
 
             // Compute linear trend line with simple linear regression.
             // See details from: http://en.wikipedia.org/wiki/Simple_linear_regression
@@ -335,7 +332,7 @@
                 // temp unit for prettier graphs (D3 will select nice evenly spaced ticks for the current temp unit
                 // instead of kelvins).
                 x.domain(d3.extent(levelData, function(d) { return d.date; }));
-                y.domain(d3.extent(levelData, function(d) { return d.level; }));
+                y.domain([0, 60]);
                 // Generate trend line if necessary.
                 var trendData = null;
                 if (showTrend) {
@@ -379,7 +376,7 @@
                         .attr("dx", -6)
                         .attr("dy", ".71em")
                         .style("text-anchor", "end")
-                        .text("Water Depth");
+                        .text("Water Depth (cm)");
                 // Draw the line graph.
                 svg.append("path")
                     .datum(levelData)
@@ -421,8 +418,8 @@
                         ampm = "PM";
                     }
                     $('#status').removeClass();
-                    $('#status').text('Last Reading: ' + ('0'+targetX.getMinutes()).slice(-2) + ' ' + ampm);
-                }
+                    $('#status').text('Last Reading: ' + levelData[levelData.length-1].level + ' @ ' + levelData[levelData.length-1].date);
+					                }
                 // Update graph state.
                 var width = $('#graph').width();
                 var showTrend = $('#drawTrend').is(':checked');
