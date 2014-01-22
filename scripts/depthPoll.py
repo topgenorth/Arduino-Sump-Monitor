@@ -22,17 +22,19 @@ arduinospeed = 115200               # Baud rate with Arduino
 # Retrieve sensor data
 conn = serial.Serial(arduino, arduinospeed, timeout=1)
 time.sleep(2)
-conn.write("get;")
+conn.write("req;")
 datain = conn.readline()
 
 # Sensor data is received in the form
-# "<channel number>,<water depth>;\n"
+# "<channel number>,<water depth>,<pressure sensor value>;\n"
 # First we split this out to a list of values,
 # then cast each to numeric values and assign to variables.
 x = datain.split(";")[0].split(",")
 if x[0] is "1":
     depth = sumpdepth - int(x[1]) #calculate water depth as sump pit depth minus distance to waterline (returned from arduino)
-    print("Received %s" % (depth))
+    print("Received %s from hc-3604" % (depth))
+    pressure = int(x[2]) #report value from pressure sensor to determine inches of water exerting force on airtube at bottom of pit (returned from arduino)
+    print("Received %s from mpx5050dp" % (pressure))
 else:
     print("Unknown channel received: %s" % (x[0]))
     sys.exit(1)
@@ -50,6 +52,7 @@ new_entry = Item(reading, data={
     'Id': 'sump',
     'Date': polltime,
     'Level': depth,
+    'Pressure': pressure,
 })
 new_entry.save()
 

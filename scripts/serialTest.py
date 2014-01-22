@@ -10,10 +10,17 @@ conn = serial.Serial('/dev/ttyACM0', 115200)
 
 print("sleeping")
 time.sleep(2)
-print("writing to port")
-conn.write('get;')
-print("reading from port")
-response = conn.readline()
-conn.close()
 
-print response
+print("Triggering ping sensor")
+conn.write('get;')
+print("reading from ping sensor")
+pingresponse = conn.readline()
+print pingresponse
+
+print("Triggering pressure sensor")
+conn.write('kpa;')
+print("reading from pressure sensor")
+pressureresponse = conn.readline()
+print pressureresponse
+
+conn.close()
